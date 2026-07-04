@@ -113,4 +113,7 @@ wss.on("connection", (ws) => {
   ws.on("close", () => clearInterval(timer));
 });
 
-server.listen(4000, () => console.log("mock on http://localhost:4000 (ws://localhost:4000/ws)"));
+// Local default stays 4000 (behavior unchanged); hosts like Render/Railway
+// inject PORT, so honor it for deployment.
+const PORT = process.env.PORT || 4000;
+server.listen(PORT, () => console.log(`mock on http://localhost:${PORT} (ws://localhost:${PORT}/ws)`));

@@ -58,6 +58,37 @@ The API/WS origins default to `localhost:4000` and can be overridden with
 - `src/features/persistence/cache.ts` — IndexedDB cache (hydrate + revalidate).
 - `src/buggy/TaskTicker.tsx` — Part 2 fixes (see `DECISIONS.md`).
 
+## Deploying (Vercel app + hosted mock)
+
+The app is a standard Next.js app and deploys to **Vercel** with no code changes.
+The catch: the **mock server is a long-lived WebSocket + SSE process, which Vercel
+serverless cannot run**, so the mock must be hosted separately and the app pointed
+at it. All data fetching is client-side, so the Vercel build succeeds regardless;
+the app just shows an error state until it can reach a backend.
+
+**1. Host the mock** (needs WebSocket support — Render/Railway/Fly, not Vercel).
+A Render blueprint is included (`render.yaml`): New → Blueprint → pick this repo.
+The mock now honors the platform's `PORT` env var (local default is still 4000).
+You'll get a URL like `https://annotation-console-mock.onrender.com`.
+
+**2. Deploy the app to Vercel.**
+- If this folder isn't its own git repo, set **Root Directory = `annotation-console`**
+  in the Vercel project (the framework auto-detects as Next.js).
+- Add these Environment Variables, then **redeploy** (Next.js inlines
+  `NEXT_PUBLIC_*` at *build time*, so a rebuild is required for them to take effect):
+
+  | Variable                | Value                                              |
+  | ----------------------- | -------------------------------------------------- |
+  | `NEXT_PUBLIC_API_BASE`  | `https://<your-mock-host>`                          |
+  | `NEXT_PUBLIC_WS_URL`    | `wss://<your-mock-host>/ws`                         |
+
+> Must be `https`/`wss` (not `http`/`ws`): an HTTPS page cannot call insecure
+> origins — the browser blocks it as mixed content. Seeing requests to
+> `http://localhost:4000` in production means these vars weren't set at build time.
+
+For a take-home, running locally is the intended path; a public deploy is only
+needed if you want a live demo, and requires the hosted mock above.
+
 ## Things worth knowing
 
 - The mock returns **deliberately messy** data (mixed timestamp formats, string
